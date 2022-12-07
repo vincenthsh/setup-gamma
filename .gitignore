@@ -2,6 +2,4 @@ node_modules
 *.log
 .idea
 coverage
-dist
-**/dist
 *DS_store
