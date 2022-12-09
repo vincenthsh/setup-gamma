@@ -1,4 +1,4 @@
-name: Gamma
+name: Setup Gamma
 author: Gravitational, Inc.
 description: Build & deploy a monorepo of GitHub Actions into individual repos
 
