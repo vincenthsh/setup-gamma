@@ -1,6 +1,9 @@
-# setup-gamma
+# setup-gamma Fork
 
-Setup your GitHub actions workflow with a specific version of Gamma
+Setup your GitHub actions workflow with a specific version of Gamma fork.
+
+> [!WARNING]
+> This action installs [vincenthsh/gamma](https://github.com/vincenthsh/gamma)
 
 ## How to use with GitHub Actions
 
@@ -53,13 +56,14 @@ jobs:
         with:
           fetch-depth: 0 # Make sure you set this, as Gamma needs the Git history
 
-      - uses: actions/setup-node@v3
-        
-      - uses: gravitational/setup-gamma@v1
+      - uses: actions/setup-node@v4
+          cache: pnpm
 
-      - run: yarn # Install your dependencies as normal
+      - uses: vincenthsh/setup-gamma@v1
 
-      - run: yarn test # Test your actions, if you have tests
+      - run: pnpm i # Install your dependencies as normal
+
+      - run: pnpm test # Test your actions, if you have tests
 
       - name: Deploy actions
         run: gamma deploy
@@ -92,15 +96,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
+          cache: pnpm # Fork is written for pnpm (and nx)
 
-      - uses: gravitational/setup-gamma@v1
+      - uses: vincenthsh/setup-gamma@v1
 
-      - run: yarn # Install your dependencies as normal
+      - run: pnpm i # Install your dependencies as normal
         
-      - run: yarn test # Test your actions, if you have tests
+      - run: pnpm test # Test your actions, if you have tests
 
       - name: Build actions
         run: gamma build

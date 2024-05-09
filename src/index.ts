@@ -1,8 +1,8 @@
-import os from 'os';
+import os from "os";
+import * as path from "path";
 
-import * as core from '@actions/core';
-import * as tc from '@actions/tool-cache';
-import { chmodSync } from 'fs';
+import * as core from "@actions/core";
+import * as tc from "@actions/tool-cache";
 
 interface Inputs {
   version: string;
@@ -10,8 +10,8 @@ interface Inputs {
 
 function getPlatform(rawPlatform: string): string {
   switch (rawPlatform) {
-    case 'linux':
-      return 'linux';
+    case "linux":
+      return "linux";
   }
 
   throw new Error(`platform ${rawPlatform} not supported`);
@@ -19,28 +19,40 @@ function getPlatform(rawPlatform: string): string {
 
 function getArch(rawArch: string): string {
   switch (rawArch) {
-    case 'x64':
-      return 'amd64';
-
-    case 'arm':
-      return 'arm';
-
-    case 'arm64':
-      return 'arm64';
+    case "x64":
+      return "amd64";
+    case "arm64":
+      return "arm64";
   }
 
   throw new Error(`architecture ${rawArch} not supported`);
 }
 
-function getInputs(): Inputs {
-  let version = core.getInput('version');
-  if (version === '') {
+async function getLatestVersion(): Promise<string> {
+  const response = await fetch(
+    "https://api.github.com/repos/vincenthsh/gamma/releases/latest",
+    {
+      headers: {
+        "User-Agent": "vincenthsh/setup-gamma",
+      },
+    }
+  );
+  const data = await response.json();
+  // The substring() method will return a new string starting
+  // from index 1, effectively removing the 'v' at start
+  return data.tag_name.substring(1);
+}
+
+async function getInputs(): Promise<Inputs> {
+  let version = core.getInput("version");
+  if (version === "") {
+    version = await getLatestVersion();
     return {
-      version: 'latest',
+      version,
     };
   }
 
-  if (version.startsWith('v')) {
+  if (version.startsWith("v")) {
     throw new Error("'version' input should not be prefixed with 'v'");
   }
 
@@ -58,41 +70,38 @@ function getInputs(): Inputs {
   };
 }
 
-const toolName = 'gamma';
+const toolName = "gamma";
 
 async function run(): Promise<void> {
-  const inputs = getInputs();
-
-  if (inputs.version === 'latest') {
-    core.info('Installing the latest Gamma')
-  } else {
-    core.info(`Installing Gamma ${inputs.version}`);
-  }
+  const inputs = await getInputs();
+  core.info(`Installing Gamma ${inputs.version}`);
 
   const toolPath = tc.find(toolName, inputs.version);
-  if (toolPath !== '') {
-    core.info('Gamma binaries found in cache.');
+  if (toolPath !== "") {
+    core.info("Gamma binaries found in cache.");
     core.addPath(toolPath);
 
     return;
   }
 
-  core.info('Downloading Gamma...');
-
   const platform = getPlatform(os.platform());
   const arch = getArch(os.arch());
+  const downloadUrl = `https://github.com/vincenthsh/gamma/releases/download/v${inputs.version}/gamma_${inputs.version}_${platform}_${arch}.tar.gz`;
 
-  const downloadPath = await tc.downloadTool(
-    `https://github.com/gravitational/gamma/releases/${inputs.version}/download/gamma-${platform}-${arch}`
+  core.info(`Downloading: ${downloadUrl}`);
+  const downloadPath = await tc.downloadTool(downloadUrl);
+  const extractedFolder = await tc.extractTar(downloadPath);
+
+  const cachedPath = await tc.cacheFile(
+    path.join(extractedFolder, toolName),
+    toolName,
+    toolName,
+    inputs.version
   );
-
-  chmodSync(downloadPath, '755');
-
-  const cachedPath = await tc.cacheFile(downloadPath, toolName, toolName, inputs.version);
 
   core.addPath(cachedPath);
 
-  core.info('Done!')
+  core.info("Done!");
 }
 
 run().catch(core.setFailed);

@@ -1,0 +1,90 @@
+name: "build-test"
+on: # rebuild any PRs and main branch changes
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build: # make sure the action builds
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --check-files
+
+      - name: Rebuild the dist directory
+        run: yarn build
+
+  test-v1: # make sure the action works on a clean machine without building
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use local action
+        uses: ./
+        with:
+          version: "1.2.0"
+      - name: Validate action output
+        env:
+          V1_RELEASE: "1.2.0"
+        run: |
+          GAMMA_PATH=$(command -v gamma)
+
+          if [ -z "${GAMMA_PATH}" ]; then
+            echo "Gamma is not in github runner PATH!"
+            exit 1
+          fi
+
+          INSTALLED_VERSION_FULL=$(gamma --version)
+          INSTALLED_VERSION=${INSTALLED_VERSION_FULL##* }
+
+          if [ "${INSTALLED_VERSION}" != "${V1_RELEASE}" ]; then
+            echo "Installed version of gamma ($INSTALLED_VERSION) does not match the latest release ($V1_RELEASE)!"
+            exit 1
+          fi
+
+          echo "Gamma is correctly installed and ${V1_RELEASE}."
+
+  test-latest: # make sure the action gets latest when version is not provided
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use local action
+        uses: ./
+      - name: Validate action output
+        run: |
+          GAMMA_PATH=$(command -v gamma)
+
+          if [ -z "${GAMMA_PATH}" ]; then
+            echo "Gamma is not in github runner PATH!"
+            exit 1
+          fi
+
+          LATEST_RELEASE=$(curl --silent "https://api.github.com/repos/vincenthsh/gamma/releases/latest" | jq -r .tag_name)
+
+          if [ -z "${LATEST_RELEASE}" ]; then
+            echo "Unable to retrieve the latest release of gamma from GitHub!"
+            exit 1
+          fi
+
+          LATEST_RELEASE=${LATEST_RELEASE#v}
+
+          INSTALLED_VERSION_FULL=$(gamma --version)
+          INSTALLED_VERSION=${INSTALLED_VERSION_FULL##* }
+
+          if [ "${INSTALLED_VERSION}" != "${LATEST_RELEASE}" ]; then
+            echo "Installed version of gamma (${INSTALLED_VERSION}) does not match the latest release (${LATEST_RELEASE})!"
+            exit 1
+          fi
+
+          echo "Gamma is correctly installed and latest."

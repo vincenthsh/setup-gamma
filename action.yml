@@ -1,4 +1,4 @@
-name: Setup Gamma
+name: Setup Gamma Fork
 author: Gravitational, Inc.
 description: Build & deploy a monorepo of GitHub Actions into individual repos
 
@@ -8,7 +8,7 @@ inputs:
     required: false
 
 runs:
-  using: node16
+  using: node20
   main: dist/index.js
 
 branding:
