@@ -57,6 +57,8 @@ jobs:
           fetch-depth: 0 # Make sure you set this, as Gamma needs the Git history
 
       - uses: actions/setup-node@v4
+        with:
+          node-version: 20.7.0
           cache: pnpm
 
       - uses: vincenthsh/setup-gamma@v1
@@ -99,6 +101,8 @@ jobs:
         uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
+        with:
+          node-version: 20.7.0
           cache: pnpm # Fork is written for pnpm (and nx)
 
       - uses: vincenthsh/setup-gamma@v1
